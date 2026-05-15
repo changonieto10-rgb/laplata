@@ -654,9 +654,9 @@
     </div>
 
     <div id="zona-cobertura" style="display:none;margin-top:12px;padding:16px;background:#1A0A00;border-radius:10px;border-left:5px solid #A0221E;">
-      <div style="font-size:15px;color:white;font-weight:700;margin-bottom:8px;">🛵 Envío a domicilio</div>
-      <div style="font-size:14px;color:#ccc;line-height:1.8;">
-        📅 Todos los días · 20:00 a 23:00 hs<br>
+      <div style="font-size:15px;color:white;font-weight:700;margin-bottom:8px;">🛵 Envíos a domicilio · Solo casco urbano</div>
+      <div style="font-size:14px;color:#FFFFFF;line-height:1.8;">
+        📅 Todos los días · 19:30 a 23:00 hs<br>
         ⚠️ <strong style="color:white;">Mínimo:</strong> 6 empanadas o 1 locro
       </div>
     </div>
@@ -994,8 +994,8 @@ function generarHorariosGorina(intervalo) {
     sel.appendChild(sepN);
   }
 
-  // Noche: 20:00 a 23:00 para envío, 19:15 a 23:00 para retiro
-  let h = esEnvio ? 20 : 19, m = esEnvio ? 0 : 15;
+  // Noche: 19:30 a 23:00 para envío, 19:15 a 23:00 para retiro
+  let h = esEnvio ? 19 : 19, m = esEnvio ? 30 : 15;
   while(true) {
     const hStr = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
     const op = document.createElement('option');

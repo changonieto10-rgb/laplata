@@ -675,7 +675,7 @@
       <div class="campo">
         <label id="horario-lbl" style="display:block;font-size:13px;font-weight:700;color:#1A0A00;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Horario deseado *</label>
         <div style="display:flex;gap:10px;margin-bottom:10px;">
-          <button type="button" id="btn-20min" onclick="elegir20min()" style="flex:1;padding:13px 10px;border:2px solid var(--gris-claro);border-radius:8px;background:var(--blanco);font-family:Lato,sans-serif;font-size:15px;font-weight:700;color:var(--negro);cursor:pointer;transition:all 0.2s;">⚡ En 20 minutos</button>
+          <button type="button" id="btn-20min" onclick="elegir20min()" style="flex:1;padding:13px 10px;border:2px solid var(--gris-claro);border-radius:8px;background:var(--blanco);font-family:Lato,sans-serif;font-size:15px;font-weight:700;color:var(--negro);cursor:pointer;transition:all 0.2s;">⚡ Lo antes posible</button>
           <button type="button" id="btn-elegir" onclick="elegirHorario()" style="flex:1;padding:13px 10px;border:2px solid var(--gris-claro);border-radius:8px;background:var(--blanco);font-family:Lato,sans-serif;font-size:15px;font-weight:700;color:var(--negro);cursor:pointer;transition:all 0.2s;">🕐 Elegir horario</button>
         </div>
         <select id="horario-select" style="display:none;width:100%;padding:13px 15px;border:1.5px solid var(--rojo);border-radius:8px;font-family:Lato,sans-serif;font-size:16px;background:var(--blanco);color:var(--negro);outline:none;font-weight:600;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;"></select>
@@ -994,8 +994,8 @@ function generarHorariosGorina(intervalo) {
     sel.appendChild(sepN);
   }
 
-  // Noche: 19:30 a 23:00 para envío, 19:15 a 23:00 para retiro
-  let h = esEnvio ? 19 : 19, m = esEnvio ? 30 : 15;
+  // Noche: 19:30 a 23:00 para envío, 19:30 a 23:00 para retiro
+  let h = esEnvio ? 19 : 19, m = esEnvio ? 30 : 30;
   while(true) {
     const hStr = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
     const op = document.createElement('option');
@@ -1010,7 +1010,7 @@ function generarHorariosGorina(intervalo) {
 }
 
 function elegir20min() {
-  document.getElementById('horario-texto').value = 'En 20 minutos';
+  document.getElementById('horario-texto').value = 'Lo antes posible';
   document.getElementById('horario-select').style.display = 'none';
   document.getElementById('btn-20min').style.borderColor = 'var(--rojo)';
   document.getElementById('btn-20min').style.color = 'var(--rojo)';

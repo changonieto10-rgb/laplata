@@ -442,9 +442,32 @@
     text-align: center; padding: 16px 18px 4px;
     font-size: 14px; color: #444; line-height: 1.7;
   }
+
+  /* Overlay sitio cerrado */
+  #overlay-cerrado {
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(10,10,10,0.97);
+    flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:30px;
+  }
+  #overlay-cerrado.activo { display:flex; }
+  .cerrado-icon { font-size:60px; margin-bottom:20px; }
+  .cerrado-titulo { font-family:'Playfair Display',serif; font-size:28px; color:#A0221E; margin-bottom:12px; }
+  .cerrado-texto { font-size:16px; color:#aaa; max-width:320px; line-height:1.6; }
+
+  /* Btn envio deshabilitado */
+  .entrega-btn.deshabilitado {
+    opacity:0.35; pointer-events:none; cursor:not-allowed;
+  }
 </style>
 </head>
 <body>
+<div id="overlay-cerrado">
+  <div class="cerrado-icon">🔴</div>
+  <div class="cerrado-titulo">Estamos cerrados</div>
+  <div class="cerrado-texto">Por el momento no estamos tomando pedidos. ¡Volvemos pronto!</div>
+</div>
+
 
 <div class="toast" id="toast">Agregado</div>
 
@@ -529,7 +552,7 @@
   <div class="seccion">
     <div class="seccion-header">
       <div class="seccion-titulo">Salsas</div>
-      <div class="seccion-sub">Para sumar a tu pedido · $500 c/u</div>
+      <div class="seccion-sub">Para sumar a tu pedido · $1.000 c/u</div>
     </div>
 
     <div class="salsa-card">
@@ -540,7 +563,7 @@
           <div class="salsa-desc">Salsa a base de tomate y ají locoto</div>
         </div>
         <div class="salsa-footer">
-          <div class="salsa-precio">$500</div>
+          <div class="salsa-precio">$1.000</div>
           <div class="contador">
             <button class="cnt-btn" onclick="cambiar('yasgua',-1)">−</button>
             <span class="cnt-num" id="count-yasgua">0</span>
@@ -558,7 +581,7 @@
           <div class="salsa-desc">Salsa de cebolla tradicional norteña</div>
         </div>
         <div class="salsa-footer">
-          <div class="salsa-precio">$500</div>
+          <div class="salsa-precio">$1.000</div>
           <div class="contador">
             <button class="cnt-btn" onclick="cambiar('salsa_locro',-1)">−</button>
             <span class="cnt-num" id="count-salsa_locro">0</span>
@@ -901,7 +924,7 @@ function precioBase(id) {
   if(EMPANADAS.find(e=>e.id===id)) return 3000;
   if(id==='locro') return 20000;
   if(id==='past_batata'||id==='past_membrillo') return 2000;
-  if(id==='yasgua'||id==='salsa_locro') return 500;
+  if(id==='yasgua'||id==='salsa_locro') return 1000;
   const b=BEBIDAS.find(b=>b.id===id);
   return b?b.precio:0;
 }
@@ -1195,8 +1218,8 @@ function enviar() {
   if(cant.locro>0){items.push(`• ${cant.locro} locro/s`);total+=cant.locro*precioLocro;ok=true;}
   if(cant.past_batata>0){items.push(`• ${cant.past_batata} pastelito/s de batata`);total+=cant.past_batata*2000;ok=true;}
   if(cant.past_membrillo>0){items.push(`• ${cant.past_membrillo} pastelito/s de membrillo`);total+=cant.past_membrillo*2000;ok=true;}
-  if(cant.yasgua>0){items.push(`• ${cant.yasgua} Yasgua`);total+=cant.yasgua*500;ok=true;}
-  if(cant.salsa_locro>0){items.push(`• ${cant.salsa_locro} Salsa de locro`);total+=cant.salsa_locro*500;ok=true;}
+  if(cant.yasgua>0){items.push(`• ${cant.yasgua} Yasgua`);total+=cant.yasgua*1000;ok=true;}
+  if(cant.salsa_locro>0){items.push(`• ${cant.salsa_locro} Salsa de locro`);total+=cant.salsa_locro*1000;ok=true;}
   BEBIDAS.forEach(b=>{
     const c=cant[b.id]||0;
     if(c>0){items.push(`• ${c} ${b.nombre}`);total+=c*b.precio;ok=true;}
@@ -1419,12 +1442,39 @@ function connectStock() {
   try {
     var cfg={apiKey:"AIzaSyBVR-i_roFwBUEzBSLCoSZ1rqOFlKo7IOQ",authDomain:"vizcachera-3c567.firebaseapp.com",databaseURL:"https://vizcachera-3c567-default-rtdb.firebaseio.com",projectId:"vizcachera-3c567",storageBucket:"vizcachera-3c567.firebasestorage.app",messagingSenderId:"292776466925",appId:"1:292776466925:web:74f67fc97abd1280946fe4"};
     if(!firebase.apps.length) firebase.initializeApp(cfg);
-    firebase.database().ref('stock_laplata').on('value',function(snap){
+    var db = firebase.database();
+
+    // Leer config operacional
+    db.ref('config_laplata').on('value', function(snap) {
+      var cfg2 = snap.val() || {};
+      var sitioCerrado = cfg2.sitio_cerrado === true;
+      var envioActivo = cfg2.envio_activo !== false;
+
+      // Sitio cerrado
+      var overlay = document.getElementById('overlay-cerrado');
+      if(overlay) {
+        if(sitioCerrado) overlay.classList.add('activo');
+        else overlay.classList.remove('activo');
+      }
+
+      // Envío
+      var btnEnvio = document.getElementById('btn-envio');
+      if(btnEnvio) {
+        if(!envioActivo) {
+          btnEnvio.classList.add('deshabilitado');
+          if(typeof tipo !== 'undefined' && tipo === 'envio') {
+            if(typeof setTipo === 'function') setTipo('retiro');
+          }
+        } else {
+          btnEnvio.classList.remove('deshabilitado');
+        }
+      }
+    });
+
+    db.ref('stock_laplata').on('value',function(snap){
       var stock=snap.val()||{};
       var ids=['carne_tuc','carne_salt','pollo','jamon_queso','verdura','queso_norteno','cebolla_queso','humita','locro','past_batata','past_membrillo','yasgua','salsa_locro','coca','sprite','coca_zero','agua'];
-      // Apply immediately
       ids.forEach(function(id){ aplicarStockItem(id, stock[id]!==false); });
-      // Also retry after 1s in case cards weren't built yet
       setTimeout(function(){ ids.forEach(function(id){ aplicarStockItem(id, stock[id]!==false); }); }, 1000);
     });
   } catch(e){ console.log('Firebase error:',e); }

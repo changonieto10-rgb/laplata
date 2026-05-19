@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — La Vizcachera La Plata</title>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -93,6 +91,23 @@
     opacity:0; transition:opacity 0.3s;
   }
   .guardando.show { opacity:1; }
+
+  .control-panel {
+    background:#1A1A1A; border-radius:12px; padding:18px 16px;
+    margin-bottom:20px; border:1px solid #333;
+  }
+  .control-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 0; border-bottom:1px solid #222;
+  }
+  .control-item:last-child { border-bottom:none; padding-bottom:0; }
+  .control-label { font-size:15px; font-weight:700; }
+  .control-desc { font-size:11px; color:#888; margin-top:2px; }
+  .sitio-cerrado-banner {
+    background:#5C0E0E; border:1px solid #A0221E;
+    border-radius:10px; padding:14px 16px; margin-bottom:16px;
+    text-align:center; font-size:13px; font-weight:700; color:#FFCDD2;
+  }
 </style>
 </head>
 <body>
@@ -113,6 +128,33 @@
 
 <div class="admin-panel" id="admin-panel">
 
+  <div class="seccion-titulo">⚙️ Control operacional</div>
+  <div id="banner-cerrado" class="sitio-cerrado-banner" style="display:none;">
+    🔴 EL SITIO ESTÁ CERRADO — los clientes no pueden hacer pedidos
+  </div>
+  <div class="control-panel">
+    <div class="control-item">
+      <div>
+        <div class="control-label">🛵 Envíos a domicilio</div>
+        <div class="control-desc">Si lo apagás, los clientes solo pueden elegir retiro</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="sw-envio" onchange="guardarConfig()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="control-item">
+      <div>
+        <div class="control-label">🟢 Sitio abierto</div>
+        <div class="control-desc">Si lo apagás, los clientes ven un aviso y no pueden pedir</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="sw-cerrado" onchange="guardarConfig()">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
   <div class="seccion-titulo">Empanadas</div>
   <div id="lista-empanadas"></div>
   
@@ -131,6 +173,8 @@
   <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBVR-i_roFwBUEzBSLCoSZ1rqOFlKo7IOQ",
@@ -177,6 +221,24 @@ const GRUPOS = {
 };
 
 let stockActual = {};
+let configActual = {};
+
+function mostrarGuardado() {
+  const g = document.getElementById('guardando');
+  g.classList.add('show');
+  setTimeout(() => g.classList.remove('show'), 1500);
+}
+
+function guardarConfig() {
+  const envioActivo = document.getElementById('sw-envio').checked;
+  const sitioAbierto = document.getElementById('sw-cerrado').checked;
+  const banner = document.getElementById('banner-cerrado');
+  banner.style.display = !sitioAbierto ? 'block' : 'none';
+  db.ref('config_laplata').set({
+    envio_activo: envioActivo,
+    sitio_cerrado: !sitioAbierto
+  }).then(() => mostrarGuardado());
+}
 
 function login() {
   const clave = document.getElementById('clave-input').value;
@@ -196,6 +258,19 @@ function logout() {
 }
 
 function cargarPanel() {
+  db.ref('config_laplata').on('value', snap => {
+    configActual = snap.val() || {};
+    const envioActivo = configActual.envio_activo !== false;
+    const sitioCerrado = configActual.sitio_cerrado === true;
+    document.getElementById('sw-envio').checked = envioActivo;
+    document.getElementById('sw-cerrado').checked = !sitioCerrado;
+    document.getElementById('banner-cerrado').style.display = sitioCerrado ? 'block' : 'none';
+  });
+
+  cargarStock();
+}
+
+function cargarStock() {
   db.ref('stock_laplata').on('value', snap => {
     stockActual = snap.val() || {};
     
@@ -222,11 +297,7 @@ function cargarPanel() {
 }
 
 function toggleStock(id, disponible) {
-  db.ref('stock_laplata/' + id).set(disponible).then(() => {
-    const g = document.getElementById('guardando');
-    g.classList.add('show');
-    setTimeout(() => g.classList.remove('show'), 1500);
-  });
+  db.ref('stock_laplata/' + id).set(disponible).then(() => mostrarGuardado());
 }
 </script>
 </body>

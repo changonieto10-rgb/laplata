@@ -982,52 +982,115 @@ function renderPagos() {
 }
 
 // ===== HORARIO LA PLATA =====
+function esFechaPatria(valor) {
+  if(!valor) return false;
+  const f = new Date(valor+'T12:00:00');
+  return (f.getMonth()+1 === 5 && f.getDate() === 25) || (f.getMonth()+1 === 7 && f.getDate() === 9);
+}
+
+function horaActualAR() {
+  return new Date(new Date().toLocaleString('en-US', {timeZone:'America/Argentina/Buenos_Aires'}));
+}
+
+function actualizarBtnEnvio() {
+  const diaEl = document.getElementById('pedido-dia');
+  const btnEnvio = document.getElementById('btn-envio');
+  if(!btnEnvio) return;
+  if(diaEl && diaEl.value && esFechaPatria(diaEl.value)) {
+    // Bloquear envío solo si el horario elegido es de mediodía (antes de las 19:00)
+    const horarioEl = document.getElementById('horario-texto');
+    const horarioVal = horarioEl ? horarioEl.value : '';
+    const esMediodia = horarioVal && horarioVal !== 'Lo antes posible' && parseInt(horarioVal.split(':')[0]) < 19;
+    const sinHorario = !horarioVal;
+    if(esMediodia || sinHorario) {
+      btnEnvio.style.opacity = '0.35';
+      btnEnvio.style.pointerEvents = 'none';
+      if(typeof tipo !== 'undefined' && tipo === 'envio') setTipo('retiro');
+    } else {
+      btnEnvio.style.opacity = '';
+      btnEnvio.style.pointerEvents = '';
+    }
+  } else {
+    btnEnvio.style.opacity = '';
+    btnEnvio.style.pointerEvents = '';
+  }
+}
+
 function generarHorariosGorina(intervalo) {
   const sel = document.getElementById('horario-select');
   if(!sel) return;
   sel.innerHTML = '';
   const intervaloMin = intervalo || 20;
   const esEnvio = (typeof tipo !== 'undefined' && tipo === 'envio');
-
   const diaEl = document.getElementById('pedido-dia');
   let diaSem = -1;
+  let esPatria = false;
+  let fechaElegida = null;
   if(diaEl && diaEl.value) {
     diaSem = new Date(diaEl.value+'T12:00:00').getDay();
+    esPatria = esFechaPatria(diaEl.value);
+    fechaElegida = diaEl.value;
+  }
+  const ahoraAR = horaActualAR();
+  const hoyStr = ahoraAR.getFullYear()+'-'+String(ahoraAR.getMonth()+1).padStart(2,'0')+'-'+String(ahoraAR.getDate()).padStart(2,'0');
+  const esHoy = fechaElegida === hoyStr;
+  const horaPasadasLas15 = ahoraAR.getHours() >= 15;
+
+  // Filtro 30 min para envío hoy
+  let minHora = null, minMin = null;
+  if(esEnvio && esHoy) {
+    let totalMin = ahoraAR.getHours() * 60 + ahoraAR.getMinutes() + 30;
+    totalMin = Math.ceil(totalMin / 30) * 30;
+    minHora = Math.floor(totalMin / 60);
+    minMin = totalMin % 60;
   }
 
-  // Mediodía: 12:15 a 14:30, solo Mar(2)-Sáb(6) y solo para retiro
-  const tieneMediodia = !esEnvio && diaSem >= 2 && diaSem <= 6;
+  function agregarOpcion(hStr) {
+    const op = document.createElement('option');
+    op.value = hStr; op.textContent = hStr + ' hs';
+    sel.appendChild(op);
+  }
 
-  if(tieneMediodia) {
+  function pasaFiltro(h, m) {
+    if(!esEnvio || minHora === null) return true;
+    return h > minHora || (h === minHora && m >= minMin);
+  }
+
+  // Mediodía en fechas patrias (11:30-14:30), solo retiro, solo si no pasaron las 15:00
+  if(esPatria && !esEnvio && !(esHoy && horaPasadasLas15)) {
+    const sepM = document.createElement('option');
+    sepM.disabled = true; sepM.textContent = '── Mediodía ──';
+    sel.appendChild(sepM);
+    let h = 11, m = 30;
+    while(!(h > 14 || (h === 14 && m > 30))) {
+      agregarOpcion(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'));
+      m += intervaloMin; if(m >= 60) { m -= 60; h++; }
+    }
+    const sepN = document.createElement('option');
+    sepN.disabled = true; sepN.textContent = '── Noche ──';
+    sel.appendChild(sepN);
+  } else if(!esEnvio && !esPatria && diaSem >= 2 && diaSem <= 6 && !(esHoy && horaPasadasLas15)) {
+    // Mediodía normal Mar-Sáb
     const sepM = document.createElement('option');
     sepM.disabled = true; sepM.textContent = '── Mediodía ──';
     sel.appendChild(sepM);
     let h = 12, m = 15;
     while(!(h > 14 || (h === 14 && m > 30))) {
-      const op = document.createElement('option');
-      const hStr = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-      op.value = hStr;
-      op.textContent = hStr + ' hs';
-      sel.appendChild(op);
-      m += intervaloMin;
-      if(m >= 60) { m -= 60; h++; }
+      agregarOpcion(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'));
+      m += intervaloMin; if(m >= 60) { m -= 60; h++; }
     }
     const sepN = document.createElement('option');
     sepN.disabled = true; sepN.textContent = '── Noche ──';
     sel.appendChild(sepN);
   }
 
-  // Noche: 19:30 a 23:00 para envío, 19:30 a 23:00 para retiro
-  let h = esEnvio ? 19 : 19, m = esEnvio ? 30 : 30;
+  // Noche: 19:30 a 23:00
+  let h = 19, m = 30;
   while(true) {
     const hStr = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-    const op = document.createElement('option');
-    op.value = hStr;
-    op.textContent = hStr + ' hs';
-    sel.appendChild(op);
+    if(pasaFiltro(h, m)) agregarOpcion(hStr);
     if(h === 23 && m === 0) break;
-    m += intervaloMin;
-    if(m >= 60) { m -= 60; h++; }
+    m += intervaloMin; if(m >= 60) { m -= 60; h++; }
     if(h > 23) break;
   }
 }
@@ -1047,7 +1110,7 @@ function elegirHorario() {
   const sel = document.getElementById('horario-select');
   sel.style.display = 'block';
   document.getElementById('horario-texto').value = sel.value;
-  sel.onchange = function(){ document.getElementById('horario-texto').value = this.value; };
+  sel.onchange = function(){ document.getElementById('horario-texto').value = this.value; actualizarBtnEnvio(); };
   document.getElementById('btn-elegir').style.borderColor = 'var(--rojo)';
   document.getElementById('btn-elegir').style.color = 'var(--rojo)';
   document.getElementById('btn-20min').style.borderColor = 'var(--gris-claro)';
@@ -1101,9 +1164,14 @@ function validarDia() {
   const diaEl=document.getElementById('pedido-dia');
   const aviso=document.getElementById('dia-aviso');
   if(!diaEl||!aviso) return;
-  if(!diaEl.value||tipo!=='envio'){aviso.style.display='none';return;}
-  const dow=new Date(diaEl.value+'T12:00:00').getDay();
-  aviso.style.display=[0,4,5,6].includes(dow)?'none':'block';
+  if(!diaEl.value||tipo!=='envio'){aviso.style.display='none';}
+  else {
+    const dow=new Date(diaEl.value+'T12:00:00').getDay();
+    aviso.style.display=[0,4,5,6].includes(dow)?'none':'block';
+  }
+  actualizarBtnEnvio();
+  const sel = document.getElementById('horario-select');
+  if(sel && sel.style.display !== 'none') generarHorariosGorina(20);
 }
 
 function setTipo(t) {
